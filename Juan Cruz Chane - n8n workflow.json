@@ -1,0 +1,734 @@
+{
+  "name": "Juan Cruz Chane - n8n workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "value": 15,
+              "unit": "minutes"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {},
+        "options": {}
+      },
+      "id": "106aa8d2-ce05-41b5-9221-bd1017bbff36",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -272,
+        0
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "eq0WIUHHoJkl8GBe",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "https://airtable.com/appRAepX2CYoqduiF/tblzR9GSk1cOLnFOn/viwAgWnBEzL7zG4X1?blocks=hide",
+          "mode": "url"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblzR9GSk1cOLnFOn",
+          "mode": "list",
+          "cachedResultName": "Tickets de Soporte",
+          "cachedResultUrl": "https://airtable.com/appRAepX2CYoqduiF/tblzR9GSk1cOLnFOn"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Estado": "Pendiente",
+            "Usuario": "={{ $json.from.value[0].name }}",
+            "User-email": "={{ $json.from.value[0].address }}",
+            "Mensaje del Usuario": "={{ $json.text }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Ticket-ID",
+              "displayName": "Ticket-ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Usuario",
+              "displayName": "Usuario",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "User-email",
+              "displayName": "User-email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Mensaje del Usuario",
+              "displayName": "Mensaje del Usuario",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Respuesta del Sistema (LLM)",
+              "displayName": "Respuesta del Sistema (LLM)",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Rechazado",
+                  "value": "Rechazado"
+                },
+                {
+                  "name": "Procesado por IA",
+                  "value": "Procesado por IA"
+                },
+                {
+                  "name": "Pendiente",
+                  "value": "Pendiente"
+                },
+                {
+                  "name": "Aprobado Por Humano",
+                  "value": "Aprobado Por Humano"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "ebc5e2e5-a64e-4bca-abd5-8b9c965fad60",
+      "name": "Create a record (Airtable)",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        32,
+        0
+      ],
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "4zQg5PApuW50vIwL",
+          "name": "Airtable account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Asunto: {{ $('Gmail Trigger').item.json.subject }}\n\nMensaje:\n{{ $('Gmail Trigger').item.json.text }}",
+        "options": {
+          "systemMessage": "Sos un asistente encargado de generar respuestas automáticas para consultas/reclamos de clientes y usuarios.\n\nEn base al mensaje del usuario, generar una breve respuesta de máximo 250 caracteres."
+        }
+      },
+      "id": "6b25c2af-dab1-4f88-ae31-8c8418750715",
+      "name": "AI Agent - Asistente Tickets de Usuario",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        0
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "model": "openrouter/free",
+        "options": {
+          "maxTokens": 8500
+        }
+      },
+      "id": "13bade71-718f-4b7d-94a7-5997a4763a8a",
+      "name": "OpenRouter Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        176,
+        192
+      ],
+      "credentials": {
+        "openRouterApi": {
+          "id": "Ri0wwemxD5K3M6pd",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Gmail Trigger').item.json.from.value[0].address }}",
+        "contextWindowLength": 10
+      },
+      "id": "16bf727c-eda5-4fd6-abe5-5d10279fd264",
+      "name": "Simple Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        304,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "coderhouse.juanchane@gmail.com",
+        "subject": "=Aprobar Respuesta n&n -  {{ $('Gmail Trigger').item.json.headers.subject }}",
+        "message": "=Necesitamos aprobar esta respuesta a un usuario:\n\n{{ $json.output }}",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double",
+            "approveLabel": "Aceptar",
+            "disapproveLabel": "Rechazar"
+          }
+        },
+        "options": {}
+      },
+      "id": "5ddc7a79-df9f-496c-ad51-acddcff688e9",
+      "name": "Send message and wait for response (HITL)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        592,
+        -96
+      ],
+      "webhookId": "78e9708a-0fda-49e1-83c7-4d4236efe71d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "eq0WIUHHoJkl8GBe",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "8de563e0-f370-4eef-8fce-6b6eb971460b",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "17a2a1a5-9223-4c63-987c-12a840f35b1b",
+      "name": "If",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        816,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "https://airtable.com/appRAepX2CYoqduiF/tblzR9GSk1cOLnFOn/viwAgWnBEzL7zG4X1?blocks=hide",
+          "mode": "url"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblzR9GSk1cOLnFOn",
+          "mode": "list",
+          "cachedResultName": "Tickets de Soporte",
+          "cachedResultUrl": "https://airtable.com/appRAepX2CYoqduiF/tblzR9GSk1cOLnFOn"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Create a record (Airtable)').item.json.id }}",
+            "Respuesta del Sistema (LLM)": "={{ $('AI Agent - Asistente Tickets de Usuario').item.json.output }}",
+            "Estado": "Aprobado Por Humano",
+            "User-email": "={{ $('Gmail Trigger').item.json.from.value[0].address }}",
+            "Usuario": "={{ $('Gmail Trigger').item.json.from.value[0].name }}",
+            "Mensaje del Usuario": "={{ $('Gmail Trigger').item.json.text }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Ticket-ID",
+              "displayName": "Ticket-ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Usuario",
+              "displayName": "Usuario",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "User-email",
+              "displayName": "User-email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Mensaje del Usuario",
+              "displayName": "Mensaje del Usuario",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Respuesta del Sistema (LLM)",
+              "displayName": "Respuesta del Sistema (LLM)",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Rechazado",
+                  "value": "Rechazado"
+                },
+                {
+                  "name": "Procesado por IA",
+                  "value": "Procesado por IA"
+                },
+                {
+                  "name": "Pendiente",
+                  "value": "Pendiente"
+                },
+                {
+                  "name": "Aprobado Por Humano",
+                  "value": "Aprobado Por Humano"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "4b332f4a-ba71-4ed4-ab87-6040a60ff59e",
+      "name": "Aprobado - Update Record (Airtable)",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1040,
+        -192
+      ],
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "4zQg5PApuW50vIwL",
+          "name": "Airtable account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "https://airtable.com/appRAepX2CYoqduiF/tblzR9GSk1cOLnFOn/viwAgWnBEzL7zG4X1?blocks=hide",
+          "mode": "url"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblzR9GSk1cOLnFOn",
+          "mode": "list",
+          "cachedResultName": "Tickets de Soporte",
+          "cachedResultUrl": "https://airtable.com/appRAepX2CYoqduiF/tblzR9GSk1cOLnFOn"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Create a record (Airtable)').item.json.id }}",
+            "Usuario": "={{ $('Gmail Trigger').item.json.from.value[0].name }}",
+            "User-email": "={{ $('Gmail Trigger').item.json.from.value[0].address }}",
+            "Mensaje del Usuario": "={{ $('Gmail Trigger').item.json.text }}",
+            "Respuesta del Sistema (LLM)": "={{ $('AI Agent - Asistente Tickets de Usuario').item.json.output }}",
+            "Estado": "Rechazado"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Ticket-ID",
+              "displayName": "Ticket-ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Usuario",
+              "displayName": "Usuario",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "User-email",
+              "displayName": "User-email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Mensaje del Usuario",
+              "displayName": "Mensaje del Usuario",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Respuesta del Sistema (LLM)",
+              "displayName": "Respuesta del Sistema (LLM)",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Rechazado",
+                  "value": "Rechazado"
+                },
+                {
+                  "name": "Procesado por IA",
+                  "value": "Procesado por IA"
+                },
+                {
+                  "name": "Pendiente",
+                  "value": "Pendiente"
+                },
+                {
+                  "name": "Aprobado Por Humano",
+                  "value": "Aprobado Por Humano"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "6aa95800-b778-4365-a4b7-4d35c6d82487",
+      "name": "Rechazado - Update record (Airtable)",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1040,
+        0
+      ],
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "4zQg5PApuW50vIwL",
+          "name": "Airtable account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0C6NVDN2QH",
+          "mode": "list",
+          "cachedResultName": "coder-house"
+        },
+        "text": "=ALERTA: Error en workflow - revisar:\n\nNodo:{{ $json.id }}\n\nWorkflow:{{ $workflow.id }}\nMensaje error: {{ $json.error }}",
+        "otherOptions": {}
+      },
+      "id": "deadceda-fc52-4944-80b6-cb150c9aae8e",
+      "name": "Notificar error (Slack)",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        656,
+        272
+      ],
+      "webhookId": "ea1fa1d9-2399-40ae-94db-0a9286190e97",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "BZ37NgVFaMjDdlwt",
+          "name": "Slack account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Create a record (Airtable)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a record (Airtable)": {
+      "main": [
+        [
+          {
+            "node": "AI Agent - Asistente Tickets de Usuario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - Asistente Tickets de Usuario": {
+      "main": [
+        [
+          {
+            "node": "Send message and wait for response (HITL)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notificar error (Slack)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - Asistente Tickets de Usuario",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent - Asistente Tickets de Usuario",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message and wait for response (HITL)": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Aprobado - Update Record (Airtable)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Rechazado - Update record (Airtable)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "07a4c11a-4d8e-4fea-ba9f-8b989b6523cf",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bc2981a998b88708d7128210ba5af563a88f0b8da42915282259445a7911f569"
+  },
+  "nodeGroups": [
+    {
+      "id": "c18b6d16-3889-43f0-bb50-3c4d49818cae",
+      "name": "Generación de respuesta IA",
+      "nodeIds": [
+        "ebc5e2e5-a64e-4bca-abd5-8b9c965fad60",
+        "6b25c2af-dab1-4f88-ae31-8c8418750715",
+        "13bade71-718f-4b7d-94a7-5997a4763a8a",
+        "16bf727c-eda5-4fd6-abe5-5d10279fd264"
+      ],
+      "description": "Crea el ticket en Airtable y genera la respuesta automática con el AI Agent (OpenRouter + memoria)."
+    },
+    {
+      "id": "a013e468-6bc9-4e04-a59b-70ceaf4f39eb",
+      "name": "Aprobación humana y actualización",
+      "nodeIds": [
+        "5ddc7a79-df9f-496c-ad51-acddcff688e9",
+        "17a2a1a5-9223-4c63-987c-12a840f35b1b",
+        "4b332f4a-ba71-4ed4-ab87-6040a60ff59e",
+        "6aa95800-b778-4365-a4b7-4d35c6d82487"
+      ],
+      "description": "Envía la respuesta por Gmail para aprobación humana y actualiza el ticket en Airtable según la decisión."
+    }
+  ],
+  "id": "v1i2zReEKHjuHLpu",
+  "tags": []
+}
